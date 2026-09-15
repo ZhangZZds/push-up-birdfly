@@ -154,7 +154,7 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleRetryCamera = () => {
+  const handleRetryCamera = useCallback(() => {
     if (visionRef.current) {
       visionRef.current.stop();
       visionRef.current.start().then(() => {
@@ -163,7 +163,20 @@ export const App: React.FC = () => {
         }
       });
     }
-  };
+  }, []);
+
+  // Listen for native Android permission grant event from MainActivity
+  useEffect(() => {
+    const onNativePermissionGranted = () => {
+      console.log('Received native cameraPermissionGranted event, auto-starting camera');
+      handleRetryCamera();
+    };
+
+    window.addEventListener('cameraPermissionGranted', onNativePermissionGranted);
+    return () => {
+      window.removeEventListener('cameraPermissionGranted', onNativePermissionGranted);
+    };
+  }, [handleRetryCamera]);
 
   // Bot Simulator animation loop when in BOT mode
   useEffect(() => {

@@ -44,19 +44,20 @@ export class VisionPipeline {
         throw new Error('INSECURE_CONTEXT');
       }
 
-      // 2. Initialize hidden video element and attach to DOM (vital for Safari / WebKit)
+      // 2. Initialize video element and attach to DOM (vital for Android Chromium / Safari / WebKit)
       if (!this.video) {
         this.video = document.createElement('video');
         this.video.setAttribute('playsinline', 'true');
         this.video.setAttribute('webkit-playsinline', 'true');
         this.video.muted = true;
         this.video.autoplay = true;
+        // Non-zero dimensions and positive opacity prevent Android Chromium / MagicOS power-saving from suspending video decoding
         this.video.style.position = 'fixed';
-        this.video.style.top = '0';
-        this.video.style.left = '0';
-        this.video.style.width = '1px';
-        this.video.style.height = '1px';
-        this.video.style.opacity = '0';
+        this.video.style.top = '-9999px';
+        this.video.style.left = '-9999px';
+        this.video.style.width = '320px';
+        this.video.style.height = '240px';
+        this.video.style.opacity = '0.01';
         this.video.style.pointerEvents = 'none';
         this.video.style.zIndex = '-9999';
         if (!document.body.contains(this.video)) {
@@ -64,37 +65,58 @@ export class VisionPipeline {
         }
       }
 
-      // 3. Request user media with progressive fallbacks for desktop webcams
-      let stream: MediaStream | null = null;
-      try {
-        // Attempt 1: Standard mobile/front camera
-        stream = await navigator.mediaDevices.getUserMedia({
+      // 3. Request user media with progressive fallbacks for mobile front cameras and webcams
+      const constraintsLadder: MediaStreamConstraints[] = [
+        // 1. Preferred: Front camera with ideal resolution
+        {
           video: {
-            facingMode: 'user',
+            facingMode: { ideal: 'user' },
             width: { ideal: 640 },
             height: { ideal: 480 },
           },
           audio: false,
-        });
-      } catch (err1) {
-        console.warn('facingMode: user failed, trying fallback constraints for desktop webcam:', err1);
+        },
+        // 2. Soft front camera constraint without resolution locks (better for MagicOS / Android 16 front cameras)
+        {
+          video: {
+            facingMode: 'user',
+          },
+          audio: false,
+        },
+        // 3. Generic video with resolution preference
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          },
+          audio: false,
+        },
+        // 4. Absolute minimal constraint
+        {
+          video: true,
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+
+      for (const constraints of constraintsLadder) {
         try {
-          // Attempt 2: Desktop webcam without facingMode constraint
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 640 },
-              height: { ideal: 480 },
-            },
-            audio: false,
-          });
-        } catch (err2) {
-          console.warn('Ideal dimensions failed, trying video: true:', err2);
-          // Attempt 3: Bare minimum constraint
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false,
-          });
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          if (stream) break;
+        } catch (err) {
+          lastError = err;
+          // If permission is denied by user, stop trying lower constraints
+          if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+            throw err;
+          }
+          console.warn('getUserMedia constraint failed, trying next fallback:', constraints, err);
         }
+      }
+
+      if (!stream) {
+        throw lastError || new Error('CAMERA_UNAVAILABLE');
       }
 
       this.stream = stream;
@@ -102,15 +124,28 @@ export class VisionPipeline {
 
       await new Promise<void>((resolve) => {
         if (!this.video) return resolve();
-        this.video.onloadedmetadata = () => {
-          this.video?.play().catch((playErr) => console.warn('Video play error:', playErr));
-          resolve();
+
+        let resolved = false;
+        const complete = () => {
+          if (!resolved) {
+            resolved = true;
+            this.video?.play().catch((playErr) => {
+              console.warn('Initial video.play() deferred until user interaction:', playErr);
+              const unlock = () => {
+                this.video?.play().catch(() => {});
+                window.removeEventListener('touchstart', unlock);
+                window.removeEventListener('click', unlock);
+              };
+              window.addEventListener('touchstart', unlock, { once: true });
+              window.addEventListener('click', unlock, { once: true });
+            });
+            resolve();
+          }
         };
+
+        this.video.onloadedmetadata = complete;
         // Safety timeout in case onloadedmetadata is delayed
-        setTimeout(() => {
-          this.video?.play().catch(() => {});
-          resolve();
-        }, 1200);
+        setTimeout(complete, 1000);
       });
 
       this.isRunning = true;
@@ -128,17 +163,18 @@ export class VisionPipeline {
       let message = '摄像头启动失败，请使用鼠标模拟测试模式。';
 
       if (err instanceof Error && err.message === 'INSECURE_CONTEXT') {
-        message = '浏览器限制：请在电脑通过 http://localhost:5173/ 访问以启用摄像头（局域网HTTP限制媒体权限）。';
+        status = 'ERROR';
+        message = '📱 浏览器安全限制：安卓系统限制局域网 HTTP 无法调起摄像头。请使用 HTTPS 访问或安装安卓原生 APK！';
       } else if (err instanceof DOMException) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           status = 'CAMERA_DENIED';
-          message = '摄像头权限被拒绝：请在浏览器地址栏左侧允许摄像头，并在系统设置中授予权限。';
+          message = '🚫 相机权限未开启：请在手机【设置->应用管理->PushUp Bird】中开启“相机”权限，并点击【重试连接】。';
         } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          message = '未检测到可用摄像头设备，请连接摄像头或使用鼠标模式。';
+          message = '未检测到可用前置摄像头，请检查手机相机硬件或使用鼠标模式。';
         } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-          message = '摄像头已被其他应用占用，请关闭其他应用后重试。';
+          message = '摄像头已被其他应用（如微信、系统相机）占用，请关闭其他应用后重试。';
         } else if (err.name === 'OverconstrainedError') {
-          message = '摄像头参数不支持，请尝试刷新重试。';
+          message = '前置摄像头参数不支持，请点击重试连接。';
         }
       }
 
@@ -147,16 +183,21 @@ export class VisionPipeline {
   }
 
   private async loadPicoModel(): Promise<void> {
-    try {
-      const resp = await fetch('/facefinder');
-      if (resp.ok) {
-        const buf = await resp.arrayBuffer();
-        this.classifyRegion = unpackCascade(new Int8Array(buf));
-        console.log('Pico face detection cascade initialized (234KB)');
+    const candidatePaths = ['/facefinder', './facefinder', 'facefinder'];
+    for (const path of candidatePaths) {
+      try {
+        const resp = await fetch(path);
+        if (resp.ok) {
+          const buf = await resp.arrayBuffer();
+          this.classifyRegion = unpackCascade(new Int8Array(buf));
+          console.log(`Pico face detection cascade initialized from ${path} (234KB)`);
+          return;
+        }
+      } catch {
+        // try next candidate
       }
-    } catch (e) {
-      console.warn('Could not load /facefinder cascade, falling back to upper skin tracker:', e);
     }
+    console.warn('Could not load /facefinder cascade, falling back to upper skin tracker');
   }
 
   /**

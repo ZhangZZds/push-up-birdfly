@@ -10,7 +10,16 @@
 **把 Flappy Bird 和俯卧撑结合起来，健身突然有了通关的动力！**  
 *A Computer-Vision-Powered Fitness Exergaming App combining Push-Ups with Flappy Bird.*
 
-[English Overview](#english-overview) | [中文说明](#中文说明) | [快速上手](#快速上手-getting-started) | [生物力学设计](#生物力学与动作状态机) | [移动端工程](#移动端原生工程-android--ios)
+<p align="center">
+  <a href="https://github.com/ZhangZZds/push-up-birdfly/releases/download/v1.0.0/push-up-bird-v1.0.0.apk">
+    <img src="https://img.shields.io/badge/📲%20Download%20APK-Android%2014%2B%20(v1.0.0)-brightgreen?style=for-the-badge&logo=android" alt="Download APK"/>
+  </a>
+  <a href="https://github.com/ZhangZZds/push-up-birdfly/releases/tag/v1.0.0">
+    <img src="https://img.shields.io/badge/📦%20GitHub-v1.0.0%20Release-orange?style=for-the-badge&logo=github" alt="Release"/>
+  </a>
+</p>
+
+[English Overview](#english-overview) | [中文说明](#中文说明) | [安卓APK安装](#-安卓-apk-直接安装) | [快速上手](#快速上手-getting-started) | [生物力学设计](#生物力学与动作状态机) | [移动端工程](#移动端原生工程-android--ios)
 
 </div>
 
@@ -78,6 +87,20 @@
   - 深度触底提示轻响（Depth Pip 880Hz）
   - 俯卧撑完成大三和弦（Triumphant Major Arpeggio C5-E5-G5-C6）
   - 碰撞金属撞击音效（Collision Thud）
+
+---
+
+## 📲 安卓 APK 直接安装 (Android APK Download)
+
+本项目已提供编译完成并经真机验证的原生 Android 安装包，**针对 Android 14 / 15 (Target SDK 34 / 35) 进行了深度适配与权限优化**，并向下兼容至 Android 8.0+。
+
+* 📥 **APK 直接下载：** [**`push-up-bird-v1.0.0.apk`**](https://github.com/ZhangZZds/push-up-birdfly/releases/download/v1.0.0/push-up-bird-v1.0.0.apk)（约 11 MB）
+* 📦 **GitHub Release 发布页：** [v1.0.0 Release](https://github.com/ZhangZZds/push-up-birdfly/releases/tag/v1.0.0)
+* 💡 **安装与运行指引：**
+  1. 在安卓手机浏览器中打开上方链接下载 `push-up-bird-v1.0.0.apk`。
+  2. 点击安装（若系统提示“允许来自此来源的应用”，点击“允许”）。
+  3. 首次启动时，应用会自动调起系统原生相机权限弹窗，点击**“仅在使用中允许”**即可。
+  4. 将手机竖立放置在瑜伽垫正前方地面或墙角，即可面向摄像头进行俯卧撑挑战！
 
 ---
 

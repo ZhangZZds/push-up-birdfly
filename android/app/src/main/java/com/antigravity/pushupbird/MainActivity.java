@@ -49,7 +49,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         // Check if camera permission was granted while in background or system settings
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)

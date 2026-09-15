@@ -6,9 +6,9 @@
 
 ## 🌟 核心亮点
 
-- **跨平台工程支持：**
+- **跨平台工程与 Android 14/15 深度适配：**
+  - **Android 原生 APK：** Target SDK 34 (Android 14) / 兼容 Android 15，最低支持 Android 8.0+ (Min SDK 22)。首次启动自动触发系统原生相机运行时授权弹窗，并启用硬件加速保证 60 FPS 流畅渲染。
   - **Web 端：** 采用 Vite + React 18 + TypeScript + Tailwind CSS 构建，支持任意现代浏览器。
-  - **Android 原生应用：** 位于 `android/`，配置好摄像头权限与硬件加速，随时构建 APK。
   - **iOS 原生应用：** 位于 `ios/`，配置好 `NSCameraUsageDescription` 与 Xcode 工程。
 - **毫秒级人脸/鼻尖跟踪 (Pico Cascade)：**
   - 纯原生 TypeScript 实现的 Viola-Jones 决策树级联算法，单帧耗时仅 **0.28 毫秒**。
@@ -29,5 +29,10 @@
 
 ## 📦 发布产物 (Release Assets)
 
-1. `push-up-birdfly-web-v1.0.0.zip`: 编译完成的 Web 生产包，解压后可直接部署至任何静态 Web 服务器、GitHub Pages、Vercel 等。
-2. `game_design_spec.md`: 完整的运动生物力学调研与游戏数值平衡设计规范文档。
+1. 📲 **`push-up-bird-v1.0.0.apk`** (约 11 MB):
+   - **安卓原生安装包**，已签名，下载后可直接在安卓手机上安装运行。
+   - 适配 Android 14/15 权限与 WebView 硬件加速，向下兼容至 Android 8.0+。
+2. 🌐 **`push-up-birdfly-web-v1.0.0.zip`** (约 7.3 MB):
+   - 编译完成的 Web 生产包，解压后可直接部署至任何静态 Web 服务器、GitHub Pages、Vercel 等。
+3. 📑 **`game_design_spec.md`**:
+   - 完整的运动生物力学调研与游戏数值平衡设计规范文档。

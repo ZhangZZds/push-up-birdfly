@@ -5,12 +5,14 @@ import { DepthGauge } from './components/DepthGauge';
 import { ModeSelector } from './components/ModeSelector';
 import { CalibrationModal } from './components/CalibrationModal';
 import { GameOverModal } from './components/GameOverModal';
+import { SettingsModal } from './components/SettingsModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
 import { GameEngine } from './engine/GameEngine';
 import { AudioSynthesizer } from './engine/AudioSynthesizer';
 import { PushUpTracker } from './engine/PushUpTracker';
 import { VisionPipeline, VisionStatus } from './engine/VisionPipeline';
 import { BotSimulator } from './engine/BotSimulator';
-import { ControlMode, Difficulty, RepState } from './types/game';
+import { ControlMode, Difficulty, RepState, WorkoutRecord } from './types/game';
 
 export const App: React.FC = () => {
   // Game & Workout Metrics
@@ -35,10 +37,26 @@ export const App: React.FC = () => {
   const [controlMode, setControlMode] = useState<ControlMode>('CAMERA');
   const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
   const [sensitivity, setSensitivity] = useState<number>(1.4);
+  const [verticalOffset, setVerticalOffset] = useState<number>(() => {
+    return parseFloat(localStorage.getItem('pushup_bird_vertical_offset') || '0');
+  });
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [cameraOpacity, setCameraOpacity] = useState<number>(0.85);
+
+  // Modals & UI Views
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isCalibrationOpen, setIsCalibrationOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState<boolean>(false);
+
+  // Workout History / Leaderboard records
+  const [records, setRecords] = useState<WorkoutRecord[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pushup_bird_workout_records') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Vision Pipeline Status
   const [visionStatus, setVisionStatus] = useState<VisionStatus>('UNINITIALIZED');
@@ -84,7 +102,31 @@ export const App: React.FC = () => {
     setScore(finalScore);
     setReps(finalReps);
     setCalories(finalCalories);
-  }, []);
+
+    // Save workout session to Leaderboard
+    if (finalReps > 0 || finalScore > 0) {
+      const now = new Date();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const newRecord: WorkoutRecord = {
+        id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        timestamp: Date.now(),
+        date: `${month}-${day} ${hours}:${mins}`,
+        reps: finalReps,
+        score: finalScore,
+        calories: finalCalories,
+        difficulty,
+        mode: controlMode,
+      };
+      setRecords((prev) => {
+        const updated = [newRecord, ...prev].slice(0, 50);
+        localStorage.setItem('pushup_bird_workout_records', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [controlMode, difficulty]);
 
   const handleRepPunch = useCallback(() => {
     setIsRepPunching(true);
@@ -219,19 +261,33 @@ export const App: React.FC = () => {
     engine.setControlMode(controlMode);
     engine.setDifficulty(difficulty);
     engine.setCameraOpacity(cameraOpacity);
+    engine.setVerticalOffset(verticalOffset);
     if (visionRef.current?.getVideo()) {
       engine.setVideoElement(visionRef.current.getVideo());
     }
 
     engineRef.current = engine;
     engine.start();
-  }, [cameraOpacity, controlMode, difficulty, handleGameOver, handleRepPunch, handleScoreUpdate]);
+  }, [cameraOpacity, controlMode, difficulty, handleGameOver, handleRepPunch, handleScoreUpdate, verticalOffset]);
 
   const handleCameraOpacityChange = (val: number) => {
     setCameraOpacity(val);
     if (engineRef.current) {
       engineRef.current.setCameraOpacity(val);
     }
+  };
+
+  const handleVerticalOffsetChange = (offset: number) => {
+    setVerticalOffset(offset);
+    localStorage.setItem('pushup_bird_vertical_offset', String(offset));
+    if (engineRef.current) {
+      engineRef.current.setVerticalOffset(offset);
+    }
+  };
+
+  const handleClearRecords = () => {
+    setRecords([]);
+    localStorage.removeItem('pushup_bird_workout_records');
   };
 
   // Controls
@@ -276,14 +332,13 @@ export const App: React.FC = () => {
       <div className="absolute top-2 left-0 right-0 z-30 flex justify-center px-3">
         <ModeSelector
           currentMode={controlMode}
+          difficulty={difficulty}
           visionStatus={visionStatus}
           visionMessage={visionMessage}
-          sensitivity={sensitivity}
-          difficulty={difficulty}
           onSelectMode={handleSelectMode}
           onRetryCamera={handleRetryCamera}
-          onChangeSensitivity={handleSensitivityChange}
-          onChangeDifficulty={handleDifficultyChange}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
         />
       </div>
 
@@ -320,6 +375,36 @@ export const App: React.FC = () => {
         />
       </div>
 
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        controlMode={controlMode}
+        difficulty={difficulty}
+        sensitivity={sensitivity}
+        verticalOffset={verticalOffset}
+        cameraOpacity={cameraOpacity}
+        isMuted={isMuted}
+        onSelectMode={handleSelectMode}
+        onChangeDifficulty={handleDifficultyChange}
+        onChangeSensitivity={handleSensitivityChange}
+        onChangeVerticalOffset={handleVerticalOffsetChange}
+        onChangeCameraOpacity={handleCameraOpacityChange}
+        onToggleMute={toggleMute}
+        onOpenCalibration={() => {
+          setIsSettingsOpen(false);
+          setIsCalibrationOpen(true);
+        }}
+      />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        records={records}
+        onClearRecords={handleClearRecords}
+      />
+
       {/* Calibration Wizard Modal */}
       <CalibrationModal
         isOpen={isCalibrationOpen}
@@ -337,6 +422,7 @@ export const App: React.FC = () => {
         bestScore={bestScore}
         bestReps={bestReps}
         onRestart={restartGame}
+        onOpenLeaderboard={() => setIsLeaderboardOpen(true)}
       />
     </div>
   );

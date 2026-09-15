@@ -56,6 +56,7 @@ export class GameEngine {
   // Camera video element for background rendering
   private videoElement: HTMLVideoElement | null = null;
   private cameraOpacity: number = 0.85;
+  private verticalOffset: number = 0;
   private detectedLandmark: { rawY: number; rawX: number; timestamp: number } | null = null;
 
   // Callbacks
@@ -112,6 +113,14 @@ export class GameEngine {
 
   public setControlMode(mode: ControlMode): void {
     this.controlMode = mode;
+  }
+
+  public setVerticalOffset(offset: number): void {
+    this.verticalOffset = Math.max(-0.35, Math.min(0.35, offset));
+  }
+
+  public getVerticalOffset(): number {
+    return this.verticalOffset;
   }
 
   public setDifficulty(diff: Difficulty): void {
@@ -180,12 +189,11 @@ export class GameEngine {
    * Feed tracking input (smoothY in [0, 1]) from mouse, camera, or bot
    */
   public updateBirdTargetNormalized(smoothY: number): void {
-    // Map normalized [0, 1] to playable canvas height:
-    // 0 -> Top plank (near top: y ~ 64px)
-    // 1 -> Bottom chest-to-floor (near bottom: y ~ 700px)
-    const minY = 64;
-    const maxY = REF_HEIGHT - 90;
-    this.bird.targetY = minY + smoothY * (maxY - minY);
+    // Map normalized [0, 1] to playable canvas height with user vertical offset [-0.35, 0.35]
+    const effectiveY = Math.max(0, Math.min(1, smoothY + this.verticalOffset));
+    const minY = 56;
+    const maxY = REF_HEIGHT - 80;
+    this.bird.targetY = minY + effectiveY * (maxY - minY);
   }
 
   /**
@@ -218,9 +226,11 @@ export class GameEngine {
    * Physics, Scrolling, and Collisions Update
    */
   private update(dt: number): void {
-    // 1. Update Bird Position: Instantaneous physical 1:1 follow with zero latency
+    // 1. Update Bird Position: Instantaneous physical 1:1 follow with soft screen bounds clamping
     this.bird.prevY = this.bird.y;
-    this.bird.y = this.bird.targetY;
+    const minClampedY = 16;
+    const maxClampedY = REF_HEIGHT - BIRD_HEIGHT - 16;
+    this.bird.y = Math.max(minClampedY, Math.min(maxClampedY, this.bird.targetY));
 
     // Calculate vertical velocity for dynamic tilt angle
     const vy = (this.bird.y - this.bird.prevY) / dt;
@@ -349,11 +359,6 @@ export class GameEngine {
       w: BIRD_WIDTH - BIRD_HITBOX_INSET_X * 2,
       h: BIRD_HEIGHT - BIRD_HITBOX_INSET_Y * 2,
     };
-
-    // Screen top and bottom boundaries
-    if (birdBox.y <= 10 || birdBox.y + birdBox.h >= REF_HEIGHT - 10) {
-      return true;
-    }
 
     for (const pipe of this.pipes) {
       // Horizontal overlap check

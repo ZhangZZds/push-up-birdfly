@@ -10,6 +10,7 @@ interface GameOverModalProps {
   bestScore: number;
   bestReps: number;
   onRestart: () => void;
+  onOpenLeaderboard?: () => void;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
@@ -20,6 +21,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   bestScore,
   bestReps,
   onRestart,
+  onOpenLeaderboard,
 }) => {
   useEffect(() => {
     if (isOpen && (reps >= 5 || reps > bestReps || score > bestScore)) {
@@ -83,14 +85,26 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           </span>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={onRestart}
-          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-base shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
-        >
-          <RotateCcw className="w-5 h-5" />
-          <span>再练一组 (PLAY AGAIN)</span>
-        </button>
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onRestart}
+            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-base shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-transform"
+          >
+            <RotateCcw className="w-5 h-5" />
+            <span>再练一组 (PLAY AGAIN)</span>
+          </button>
+
+          {onOpenLeaderboard && (
+            <button
+              onClick={onOpenLeaderboard}
+              className="w-full py-2.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 active:scale-98 transition-all border border-zinc-700 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 shadow"
+            >
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span>查看排行榜与训练战绩</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

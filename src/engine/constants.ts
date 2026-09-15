@@ -18,13 +18,13 @@ export const REF_WIDTH = 450;
 export const REF_HEIGHT = 800;
 export const BIRD_WIDTH = 48;
 export const BIRD_HEIGHT = 34;
-export const BIRD_HITBOX_INSET_X = 6;
-export const BIRD_HITBOX_INSET_Y = 5;
+export const BIRD_HITBOX_INSET_X = 8;
+export const BIRD_HITBOX_INSET_Y = 6;
 
 export const PIPE_WIDTH = 70;
 export const PIPE_LIP_HEIGHT = 24;
 export const PIPE_LIP_OVERHANG = 4;
-export const PIPE_HITBOX_FORGIVENESS = 4;
+export const PIPE_HITBOX_FORGIVENESS = 8;
 
 // Game Pacing
 export const SCROLL_VELOCITY_PX_S = 125.0;     // Horizontal scroll speed in px/s

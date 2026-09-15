@@ -57,3 +57,14 @@ export interface CalibrationStep {
   message: string;
   countdown: number;
 }
+
+export interface WorkoutRecord {
+  id: string;
+  timestamp: number;
+  date: string;
+  reps: number;
+  score: number;
+  calories: number;
+  difficulty: Difficulty;
+  mode: ControlMode;
+}

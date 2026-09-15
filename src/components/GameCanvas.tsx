@@ -47,7 +47,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     <div
       ref={containerRef}
       onMouseMove={(e) => handlePointerMove(e.clientY)}
+      onMouseDown={(e) => handlePointerMove(e.clientY)}
       onTouchMove={(e) => {
+        if (e.touches.length > 0) {
+          handlePointerMove(e.touches[0].clientY);
+        }
+      }}
+      onTouchStart={(e) => {
         if (e.touches.length > 0) {
           handlePointerMove(e.touches[0].clientY);
         }

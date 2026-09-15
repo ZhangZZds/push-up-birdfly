@@ -42,7 +42,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const offsetPercent = Math.round(verticalOffset * 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="relative w-full max-w-md rounded-3xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl p-5 max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800 mb-4">

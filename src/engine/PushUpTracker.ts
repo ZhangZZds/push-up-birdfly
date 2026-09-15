@@ -88,6 +88,8 @@ export class PushUpTracker {
     this.repStartTime = 0;
     this.bottomEnterTime = 0;
     this.depthTriggeredInCurrentRep = false;
+    this.lastTime = 0;
+    this.currentVelocity = 0;
   }
 
   /**
@@ -95,9 +97,15 @@ export class PushUpTracker {
    * Consumes raw normalized landmark Y [0.0, 1.0] and returns smoothed metrics.
    */
   public processLandmark(rawY: number, nowMs: number): TrackingMetrics {
+    // 0. Robustness guard against NaN, undefined, or non-finite coordinates
+    if (typeof rawY !== 'number' || isNaN(rawY) || !isFinite(rawY)) {
+      rawY = this.ySmooth;
+    }
+    rawY = Math.max(0.0, Math.min(1.0, rawY));
+
     if (this.lastTime === 0) {
       this.lastTime = nowMs;
-      this.ySmooth = 0.2;
+      this.ySmooth = rawY;
     }
 
     const dt = Math.min(Math.max((nowMs - this.lastTime) / 1000, 0.001), 0.1);
@@ -127,7 +135,7 @@ export class PushUpTracker {
     // 2. Headroom Normalized Mapping with Dynamic Sensitivity Scaling
     const range = Math.max(this.yMax - this.yMin, 0.08);
     const center = (this.yMin + this.yMax) * 0.5;
-    const effectiveHalfRange = (range * 0.5) / this.sensitivity;
+    const effectiveHalfRange = Math.max((range * 0.5) / Math.max(this.sensitivity, 0.1), 0.01);
 
     const yNorm = Math.min(
       Math.max((rawY - (center - effectiveHalfRange)) / (2 * effectiveHalfRange), 0.0),

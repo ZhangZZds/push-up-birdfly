@@ -178,6 +178,19 @@ export class GameEngine {
     this.start();
   }
 
+  public pause(): void {
+    if (this.state === 'PLAYING') {
+      this.state = 'PAUSED';
+    }
+  }
+
+  public resume(): void {
+    if (this.state === 'PAUSED') {
+      this.state = 'PLAYING';
+      this.lastTimestamp = 0; // Reset timestamp to prevent large dt jump upon unpausing
+    }
+  }
+
   public stop(): void {
     if (this.animId !== null) {
       cancelAnimationFrame(this.animId);
@@ -189,6 +202,9 @@ export class GameEngine {
    * Feed tracking input (smoothY in [0, 1]) from mouse, camera, or bot
    */
   public updateBirdTargetNormalized(smoothY: number): void {
+    if (typeof smoothY !== 'number' || isNaN(smoothY) || !isFinite(smoothY)) {
+      return;
+    }
     // Map normalized [0, 1] to playable canvas height with user vertical offset [-0.35, 0.35]
     const effectiveY = Math.max(0, Math.min(1, smoothY + this.verticalOffset));
     const minY = 56;
@@ -200,6 +216,9 @@ export class GameEngine {
    * Set raw landmark position from vision pipeline for HUD reticle rendering
    */
   public setDetectedLandmark(rawY: number, rawX: number): void {
+    if (typeof rawY !== 'number' || isNaN(rawY) || typeof rawX !== 'number' || isNaN(rawX)) {
+      return;
+    }
     this.detectedLandmark = { rawY, rawX, timestamp: performance.now() };
   }
 
@@ -381,6 +400,7 @@ export class GameEngine {
   }
 
   private triggerGameOver(): void {
+    if (this.state === 'GAMEOVER') return;
     this.state = 'GAMEOVER';
     this.audio.playHit();
     this.spawnCrashBurst(this.bird.x + BIRD_WIDTH / 2, this.bird.y + BIRD_HEIGHT / 2);
@@ -550,6 +570,22 @@ export class GameEngine {
 
     // 5. Render Title Arcade Badge: "Push day killer 💀"
     this.renderTitleBadge(ctx);
+
+    // 6. Render Paused State Badge if game is paused
+    if (this.state === 'PAUSED') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 22px system-ui, sans-serif';
+      ctx.fillStyle = '#F59E0B';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 10;
+      ctx.fillText('⏸️ 游戏已暂停', w / 2, h / 2);
+      ctx.restore();
+    }
   }
 
   /**

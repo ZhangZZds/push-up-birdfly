@@ -48,18 +48,32 @@ jobs:
       - name: 🏷️ Rename APK for Distribution
         run: |
           mkdir -p release-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.1.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.0.apk
           echo "APK generated successfully:"
-          ls -lh release-output/push-up-bird-v1.0.0.apk
+          ls -lh release-output/
 
       - name: 📤 Upload APK Artifact to GitHub Actions Run
         uses: actions/upload-artifact@v4
         with:
-          name: push-up-bird-v1.0.0-apk
-          path: release-output/push-up-bird-v1.0.0.apk
+          name: push-up-bird-v1.0.1-apk
+          path: release-output/
 
-      - name: 🚀 Attach APK to GitHub Release (v1.0.0)
+      - name: 🚀 Publish/Update GitHub Release (v1.0.1 & v1.0.0)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v1.0.0 release-output/push-up-bird-v1.0.0.apk#push-up-bird-v1.0.0.apk --clobber
+          if ! gh release view v1.0.1 >/dev/null 2>&1; then
+            gh release create v1.0.1 release-output/push-up-bird-v1.0.1.apk \
+              --title "v1.0.1 - 边界场景稳定性加固与体验升级" \
+              --notes "## 🚀 v1.0.1 更新内容
+              - 修复弹窗打开时的背景碰撞判定问题（打开设置、排行榜、标定面板时自动暂停游戏）
+              - 修复标定向导 3 秒倒计时在 60 FPS 刷新下的计时器重置 Bug
+              - 增加触摸屏与鼠标点击瞬时响应（MouseDown / TouchStart）
+              - 增加结算防重与战绩去重机制
+              - 修复页面切到后台、手机锁屏时的生命周期挂起与无缝恢复
+              - 增加鼻尖跟踪数据与物理引擎的 NaN / 非有限数安全防护"
+          else
+            gh release upload v1.0.1 release-output/push-up-bird-v1.0.1.apk --clobber
+          fi
+          gh release upload v1.0.0 release-output/push-up-bird-v1.0.0.apk --clobber || true

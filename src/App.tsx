@@ -98,34 +98,38 @@ export const App: React.FC = () => {
   }, []);
 
   const handleGameOver = useCallback((finalScore: number, finalReps: number, finalCalories: number) => {
-    setIsGameOver(true);
+    setIsGameOver((prevGameOver) => {
+      if (prevGameOver) return true; // Already processed game over, skip duplicate record creation
+
+      // Save workout session to Leaderboard
+      if (finalReps > 0 || finalScore > 0) {
+        const now = new Date();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const newRecord: WorkoutRecord = {
+          id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          timestamp: Date.now(),
+          date: `${month}-${day} ${hours}:${mins}`,
+          reps: finalReps,
+          score: finalScore,
+          calories: finalCalories,
+          difficulty,
+          mode: controlMode,
+        };
+        setRecords((prev) => {
+          const updated = [newRecord, ...prev].slice(0, 50);
+          localStorage.setItem('pushup_bird_workout_records', JSON.stringify(updated));
+          return updated;
+        });
+      }
+      return true;
+    });
+
     setScore(finalScore);
     setReps(finalReps);
     setCalories(finalCalories);
-
-    // Save workout session to Leaderboard
-    if (finalReps > 0 || finalScore > 0) {
-      const now = new Date();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      const newRecord: WorkoutRecord = {
-        id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        timestamp: Date.now(),
-        date: `${month}-${day} ${hours}:${mins}`,
-        reps: finalReps,
-        score: finalScore,
-        calories: finalCalories,
-        difficulty,
-        mode: controlMode,
-      };
-      setRecords((prev) => {
-        const updated = [newRecord, ...prev].slice(0, 50);
-        localStorage.setItem('pushup_bird_workout_records', JSON.stringify(updated));
-        return updated;
-      });
-    }
   }, [controlMode, difficulty]);
 
   const handleRepPunch = useCallback(() => {
@@ -220,9 +224,34 @@ export const App: React.FC = () => {
     };
   }, [handleRetryCamera]);
 
+  // Pause game engine when settings, leaderboard, or calibration modals are open
+  useEffect(() => {
+    if (isSettingsOpen || isLeaderboardOpen || isCalibrationOpen) {
+      engineRef.current?.pause();
+    } else if (!isGameOver) {
+      engineRef.current?.resume();
+    }
+  }, [isSettingsOpen, isLeaderboardOpen, isCalibrationOpen, isGameOver]);
+
+  // Handle page visibility change (minimize / switch tab / phone lock)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        engineRef.current?.pause();
+      } else if (!isSettingsOpen && !isLeaderboardOpen && !isCalibrationOpen && !isGameOver) {
+        engineRef.current?.resume();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isSettingsOpen, isLeaderboardOpen, isCalibrationOpen, isGameOver]);
+
   // Bot Simulator animation loop when in BOT mode
   useEffect(() => {
-    if (controlMode !== 'BOT') return;
+    if (controlMode !== 'BOT' || isGameOver || isSettingsOpen || isLeaderboardOpen || isCalibrationOpen) return;
 
     let animId: number;
     const botLoop = () => {
@@ -236,7 +265,7 @@ export const App: React.FC = () => {
 
     animId = requestAnimationFrame(botLoop);
     return () => cancelAnimationFrame(animId);
-  }, [controlMode, processInputY]);
+  }, [controlMode, isGameOver, isSettingsOpen, isLeaderboardOpen, isCalibrationOpen, processInputY]);
 
   // Handle Mouse Simulator input
   const handleSimulatedInputY = useCallback((simY: number) => {

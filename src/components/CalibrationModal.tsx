@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Sparkles } from 'lucide-react';
 
 interface CalibrationModalProps {
@@ -19,6 +19,9 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
   const [botY, setBotY] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number>(3);
 
+  const rawYRef = useRef<number>(currentRawY);
+  rawYRef.current = currentRawY;
+
   useEffect(() => {
     if (!isOpen) {
       setStep(1);
@@ -28,16 +31,16 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
       return;
     }
 
-    // Countdown timer for capturing calibration points
+    // Countdown timer for capturing calibration points (decoupled from 60fps rawY changes)
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           if (step === 1) {
-            setTopY(currentRawY);
+            setTopY(rawYRef.current);
             setStep(2);
             return 3;
           } else if (step === 2) {
-            setBotY(currentRawY);
+            setBotY(rawYRef.current);
             setStep(3);
             return 0;
           }
@@ -48,13 +51,22 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, step, currentRawY]);
+  }, [isOpen, step]);
 
   if (!isOpen) return null;
 
   const handleFinish = () => {
-    const finalTop = topY !== null ? topY : 0.25;
-    const finalBot = botY !== null ? botY : 0.75;
+    let finalTop = topY !== null ? topY : 0.25;
+    let finalBot = botY !== null ? botY : 0.75;
+    if (finalTop >= finalBot) {
+      const tmp = finalTop;
+      finalTop = finalBot;
+      finalBot = tmp;
+    }
+    if (finalBot - finalTop < 0.08) {
+      finalTop = Math.max(0.05, finalTop - 0.1);
+      finalBot = Math.min(0.95, finalBot + 0.1);
+    }
     onSaveCalibration(finalTop, finalBot);
     onClose();
   };
@@ -65,7 +77,7 @@ export const CalibrationModal: React.FC<CalibrationModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
       <div className="relative w-full max-w-sm rounded-3xl bg-zinc-900 border border-zinc-700 p-6 shadow-2xl text-center">
         {/* Close Button */}
         <button

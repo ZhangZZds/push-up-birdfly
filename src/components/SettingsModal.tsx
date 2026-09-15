@@ -55,7 +55,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-white tracking-tight">游戏与控制设置</h3>
-                <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-[10px] font-mono text-orange-300">v1.0.3</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-[10px] font-mono text-orange-300">v1.0.4</span>
               </div>
               <p className="text-[11px] text-zinc-400">Push-Up Bird 俯卧撑体感运动引擎</p>
             </div>

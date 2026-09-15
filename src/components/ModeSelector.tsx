@@ -149,6 +149,14 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
               重试连接
             </button>
           )}
+          {typeof window !== 'undefined' && (window as any).NativeAndroid?.openAppSettings && (
+            <button
+              onClick={() => (window as any).NativeAndroid.openAppSettings()}
+              className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-[10px] shrink-0 active:scale-95 border border-white/20"
+            >
+              去设置开启
+            </button>
+          )}
         </div>
       )}
 

@@ -214,22 +214,22 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Unlock camera on user tap/touch gesture if autoplay was deferred
+  // Unlock camera video playback on user gesture if autoplay was deferred
   useEffect(() => {
     const unlockCameraOnGesture = () => {
-      if (controlMode === 'CAMERA' && visionStatus !== 'READY') {
-        console.log('User gesture detected, unlocking camera...');
-        handleRetryCamera();
+      const vid = visionRef.current?.getVideo() || engineRef.current?.getVideoElement();
+      if (vid && vid.paused) {
+        vid.play().catch(() => {});
       }
     };
 
-    window.addEventListener('click', unlockCameraOnGesture, { once: true });
-    window.addEventListener('touchstart', unlockCameraOnGesture, { once: true });
+    window.addEventListener('click', unlockCameraOnGesture);
+    window.addEventListener('touchstart', unlockCameraOnGesture);
     return () => {
       window.removeEventListener('click', unlockCameraOnGesture);
       window.removeEventListener('touchstart', unlockCameraOnGesture);
     };
-  }, [controlMode, visionStatus, handleRetryCamera]);
+  }, []);
 
   // Listen for native Android permission grant event from MainActivity
   useEffect(() => {
@@ -300,6 +300,9 @@ export const App: React.FC = () => {
 
     if (video && visionRef.current) {
       visionRef.current.setVideo(video);
+      if (controlMode === 'CAMERA' && visionRef.current.getStatus() !== 'READY') {
+        visionRef.current.start(video);
+      }
     }
 
     const engine = new GameEngine({

@@ -5,6 +5,8 @@
  */
 
 import { unpackCascade, runCascade, clusterDetections, ClassifyRegionFn } from './pico';
+import { Camera } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
 
 export type VisionStatus = 'UNINITIALIZED' | 'INITIALIZING' | 'READY' | 'ERROR' | 'CAMERA_DENIED';
 
@@ -50,17 +52,34 @@ export class VisionPipeline {
     this.updateStatus('INITIALIZING', '正在启动摄像头与极速面部检测模型...');
 
     try {
-      // 1. Verify mediaDevices capability in current origin (https or localhost required)
+      // 1. On native Android / iOS, proactively verify and request native Camera runtime permission
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const status = await Camera.checkPermissions();
+          if (status.camera !== 'granted') {
+            const req = await Camera.requestPermissions({ permissions: ['camera'] });
+            if (req.camera !== 'granted') {
+              throw new DOMException('Camera permission denied by user', 'NotAllowedError');
+            }
+          }
+        } catch (permErr) {
+          if (permErr instanceof DOMException) throw permErr;
+          console.warn('Native camera permission check error:', permErr);
+        }
+      }
+
+      // 2. Verify mediaDevices capability in current origin (https or localhost required)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('INSECURE_CONTEXT');
       }
 
-      // 2. Initialize video element and attach to DOM (vital for Android Chromium / Safari / WebKit)
+      // 3. Initialize video element and attach to DOM (vital for Android Chromium / Safari / WebKit)
       if (!this.video) {
         this.video = document.createElement('video');
         this.video.setAttribute('playsinline', 'true');
         this.video.setAttribute('webkit-playsinline', 'true');
         this.video.muted = true;
+        this.video.defaultMuted = true;
         this.video.autoplay = true;
         // In-viewport positioning prevents Android Chromium / MagicOS power-saving from suspending video decoding
         this.video.style.position = 'fixed';
@@ -76,7 +95,15 @@ export class VisionPipeline {
         }
       }
 
-      // 3. Request user media with progressive fallbacks for mobile front cameras and webcams
+      // Ensure explicit video DOM properties
+      this.video.muted = true;
+      this.video.defaultMuted = true;
+      this.video.playsInline = true;
+      this.video.setAttribute('playsinline', 'true');
+      this.video.setAttribute('webkit-playsinline', 'true');
+      this.video.setAttribute('muted', 'true');
+
+      // 4. Request user media with progressive fallbacks for mobile front cameras and webcams
       const constraintsLadder: MediaStreamConstraints[] = [
         // 1. Preferred: Front camera with ideal resolution
         {
@@ -129,7 +156,7 @@ export class VisionPipeline {
       this.stream = stream;
       this.video.srcObject = this.stream;
 
-      // Ensure playback starts (with user gesture fallback unlock)
+      // Ensure playback starts
       try {
         await this.video.play();
       } catch (playErr) {
@@ -141,6 +168,18 @@ export class VisionPipeline {
         };
         window.addEventListener('touchstart', unlock, { once: true });
         window.addEventListener('click', unlock, { once: true });
+      }
+
+      // Await metadata so width and height are non-zero
+      if (this.video.readyState < 1) {
+        await new Promise<void>((resolve) => {
+          const onMeta = () => {
+            this.video?.removeEventListener('loadedmetadata', onMeta);
+            resolve();
+          };
+          this.video?.addEventListener('loadedmetadata', onMeta, { once: true });
+          setTimeout(resolve, 1500);
+        });
       }
 
       this.isRunning = true;

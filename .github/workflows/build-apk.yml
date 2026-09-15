@@ -48,6 +48,7 @@ jobs:
       - name: 🏷️ Rename APK for Distribution
         run: |
           mkdir -p release-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.4.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.3.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.2.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.1.apk
@@ -58,26 +59,26 @@ jobs:
       - name: 📤 Upload APK Artifact to GitHub Actions Run
         uses: actions/upload-artifact@v4
         with:
-          name: push-up-bird-v1.0.3-apk
+          name: push-up-bird-v1.0.4-apk
           path: release-output/
 
-      - name: 🚀 Publish/Update GitHub Release (v1.0.3)
+      - name: 🚀 Publish/Update GitHub Release (v1.0.4)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release view v1.0.3 >/dev/null 2>&1; then
-            gh release create v1.0.3 release-output/push-up-bird-v1.0.3.apk \
-              --title "v1.0.3 - 应用图标全方位美化与高能健身吉祥物重磅升级" \
-              --notes "## 🚀 v1.0.3 更新内容
-              - 重磅升级高能健身吉祥物应用图标（3D 肌肉小鸟 + 运动吸汗发带 + 炫彩暗夜霓虹渐变）
-              - 适配 Android 8~16 (含荣耀 MagicOS 9 / Android 16) 原生自适应矢量图标 (Adaptive Icons: mipmap-anydpi-v26)
-              - 彻底告别旧版安卓系统强制添加的白色圆底外边框与模糊拉伸问题
-              - 生成完整全密度图层（mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi 以及圆角/圆形独立图标）
-              - 网页端与 PWA 增强：生成超清 512px Logo、高精 Favicon (16/32/64px)、Apple Touch Icon (180px) 及全新精雕矢量 SVG
-              - 游戏内界面美化：顶部状态栏增加全新品牌 Logo 徽章，设置面板与训练结算面板嵌入专属吉祥物"
+          if ! gh release view v1.0.4 >/dev/null 2>&1; then
+            gh release create v1.0.4 release-output/push-up-bird-v1.0.4.apk \
+              --title "v1.0.4 - 荣耀 MagicOS 9 / Android 16 原生摄像头权限链路彻底打通" \
+              --notes "## 🚀 v1.0.4 更新内容
+              - 彻底解决荣耀 GT Pro (MagicOS 9 / Android 16) 摄像头不启动、状态栏不显示绿色隐私圆点的问题
+              - 接入 @capacitor/camera 原生系统权限通道，在调用 getUserMedia 前主动向系统申请并等待授权确认
+              - 重构 MainActivity 原生 WebChromeClient：精准拦截 VIDEO_CAPTURE，原生权限就绪即时放行，未授权自动弹起系统授权窗
+              - 新增原生应用设置跳转桥梁（NativeAndroid.openAppSettings），权限被拒时支持一键直达系统设置开启
+              - 消除首次触屏重启摄像头导致的 HAL 硬件锁竞争，优化 DOM video 实体直通渲染管道"
           else
-            gh release upload v1.0.3 release-output/push-up-bird-v1.0.3.apk --clobber
+            gh release upload v1.0.4 release-output/push-up-bird-v1.0.4.apk --clobber
           fi
+          gh release upload v1.0.3 release-output/push-up-bird-v1.0.3.apk --clobber || true
           gh release upload v1.0.2 release-output/push-up-bird-v1.0.2.apk --clobber || true
           gh release upload v1.0.1 release-output/push-up-bird-v1.0.1.apk --clobber || true
           gh release upload v1.0.0 release-output/push-up-bird-v1.0.0.apk --clobber || true

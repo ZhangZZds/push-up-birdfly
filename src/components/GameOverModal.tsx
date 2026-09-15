@@ -42,11 +42,23 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
       <div className="relative w-full max-w-sm rounded-3xl bg-zinc-900 border border-zinc-700 p-6 shadow-2xl text-center">
         {/* Header Badge */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs font-bold uppercase tracking-wider mb-3">
           Push Day Killer 💀
         </div>
 
-        <h2 className="text-3xl font-black text-white tracking-tight mb-4">
+        {/* Mascot Avatar */}
+        <div className="relative mx-auto mb-3 w-20 h-20">
+          <img
+            src="/pushup_bird_pose.png"
+            alt="Workout Mascot"
+            className="w-full h-full rounded-2xl object-cover shadow-2xl border-2 border-orange-500/50 ring-4 ring-orange-500/20"
+          />
+          <span className="absolute -bottom-1 -right-1 text-xl animate-bounce">
+            💪
+          </span>
+        </div>
+
+        <h2 className="text-2xl font-black text-white tracking-tight mb-4">
           WORKOUT COMPLETED!
         </h2>
 

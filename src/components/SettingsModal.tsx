@@ -46,13 +46,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       <div className="relative w-full max-w-md rounded-3xl bg-zinc-900/95 border border-zinc-700/80 shadow-2xl p-5 max-h-[90vh] overflow-y-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800 mb-4">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400">
-              <Sliders className="w-5 h-5" />
-            </div>
+          <div className="flex items-center gap-3">
+            <img
+              src="/pushup_bird_icon.png"
+              alt="PushUp Bird"
+              className="w-11 h-11 rounded-2xl object-cover shadow-lg border border-orange-500/40 ring-2 ring-orange-500/20"
+            />
             <div>
-              <h3 className="text-lg font-bold text-white tracking-tight">游戏与控制设置</h3>
-              <p className="text-[11px] text-zinc-400">个性化定制运动捕捉与飞行手感</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white tracking-tight">游戏与控制设置</h3>
+                <span className="px-1.5 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/40 text-[10px] font-mono text-orange-300">v1.0.3</span>
+              </div>
+              <p className="text-[11px] text-zinc-400">Push-Up Bird 俯卧撑体感运动引擎</p>
             </div>
           </div>
           <button

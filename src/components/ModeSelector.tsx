@@ -36,8 +36,18 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
     <div className="w-full max-w-[500px] flex flex-col items-center gap-1.5 z-20 pointer-events-auto">
       {/* Clean Top Navigation Bar */}
       <div className="w-full flex items-center justify-between px-1">
-        {/* Left: Quick Mode Switch Pills */}
-        <div className="inline-flex p-0.5 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/20 shadow-xl">
+        {/* Left: App Brand Badge & Quick Mode Switch Pills */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onOpenSettings}
+            className="flex items-center gap-1 p-1 pr-2 rounded-2xl bg-black/70 hover:bg-black/90 active:scale-95 backdrop-blur-xl border border-white/20 shadow-xl transition-all"
+            title="Push-Up Bird 俯卧撑小鸟"
+          >
+            <img src="/pushup_bird_icon.png" alt="PushUp Bird" className="w-5 h-5 rounded-full object-cover ring-1 ring-orange-400/60 shadow" />
+            <span className="hidden xs:inline font-black text-[11px] tracking-tight bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 bg-clip-text text-transparent">PushUp</span>
+          </button>
+
+          <div className="inline-flex p-0.5 rounded-2xl bg-black/70 backdrop-blur-xl border border-white/20 shadow-xl">
           <button
             onClick={() => onSelectMode('CAMERA')}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
@@ -77,6 +87,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
             <span className="hidden xs:inline">机器人</span>
           </button>
         </div>
+      </div>
 
         {/* Right: Leaderboard & Settings Trigger Buttons */}
         <div className="flex items-center gap-1.5">

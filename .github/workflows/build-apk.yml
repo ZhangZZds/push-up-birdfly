@@ -48,6 +48,7 @@ jobs:
       - name: 🏷️ Rename APK for Distribution
         run: |
           mkdir -p release-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.3.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.2.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.1.apk
           cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.0.apk
@@ -57,24 +58,26 @@ jobs:
       - name: 📤 Upload APK Artifact to GitHub Actions Run
         uses: actions/upload-artifact@v4
         with:
-          name: push-up-bird-v1.0.2-apk
+          name: push-up-bird-v1.0.3-apk
           path: release-output/
 
-      - name: 🚀 Publish/Update GitHub Release (v1.0.2)
+      - name: 🚀 Publish/Update GitHub Release (v1.0.3)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release view v1.0.2 >/dev/null 2>&1; then
-            gh release create v1.0.2 release-output/push-up-bird-v1.0.2.apk \
-              --title "v1.0.2 - 荣耀GT Pro / 安卓16 摄像头硬件激活专项修复" \
-              --notes "## 🚀 v1.0.2 更新内容
-              - 修复荣耀 GT Pro / Android 16 (MagicOS 9) 下摄像头硬件无法唤醒的问题
-              - 消除 Chromium 对隐藏 offscreen video 的电源挂起（挂载真实可见视口 DOM video 元素）
-              - 权限精简与原生同步放行：移除无用音频录音权限，避免系统权限冲突，原生 WebChromeClient 权限即时确认
-              - 增加首触自动激活解锁（Touch / Click Autoplay Policy Unlock），解决沙盒策略拦截
-              - 优化摄像头降级阶梯，向下兼容多层级移动端约束参数"
+          if ! gh release view v1.0.3 >/dev/null 2>&1; then
+            gh release create v1.0.3 release-output/push-up-bird-v1.0.3.apk \
+              --title "v1.0.3 - 应用图标全方位美化与高能健身吉祥物重磅升级" \
+              --notes "## 🚀 v1.0.3 更新内容
+              - 重磅升级高能健身吉祥物应用图标（3D 肌肉小鸟 + 运动吸汗发带 + 炫彩暗夜霓虹渐变）
+              - 适配 Android 8~16 (含荣耀 MagicOS 9 / Android 16) 原生自适应矢量图标 (Adaptive Icons: mipmap-anydpi-v26)
+              - 彻底告别旧版安卓系统强制添加的白色圆底外边框与模糊拉伸问题
+              - 生成完整全密度图层（mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi 以及圆角/圆形独立图标）
+              - 网页端与 PWA 增强：生成超清 512px Logo、高精 Favicon (16/32/64px)、Apple Touch Icon (180px) 及全新精雕矢量 SVG
+              - 游戏内界面美化：顶部状态栏增加全新品牌 Logo 徽章，设置面板与训练结算面板嵌入专属吉祥物"
           else
-            gh release upload v1.0.2 release-output/push-up-bird-v1.0.2.apk --clobber
+            gh release upload v1.0.3 release-output/push-up-bird-v1.0.3.apk --clobber
           fi
+          gh release upload v1.0.2 release-output/push-up-bird-v1.0.2.apk --clobber || true
           gh release upload v1.0.1 release-output/push-up-bird-v1.0.1.apk --clobber || true
           gh release upload v1.0.0 release-output/push-up-bird-v1.0.0.apk --clobber || true

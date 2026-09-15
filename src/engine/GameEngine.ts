@@ -107,6 +107,10 @@ export class GameEngine {
     this.videoElement = video;
   }
 
+  public getVideoElement(): HTMLVideoElement | null {
+    return this.videoElement;
+  }
+
   public setCameraOpacity(opacity: number): void {
     this.cameraOpacity = Math.max(0, Math.min(1, opacity));
   }
@@ -456,48 +460,50 @@ export class GameEngine {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Render Camera Video Stream Overlay in Background
-    if (this.videoElement && this.videoElement.readyState >= 2) {
-      ctx.save();
-      ctx.globalAlpha = this.cameraOpacity;
+    // 1. Render Background depending on Control Mode
+    if (this.controlMode === 'CAMERA') {
+      if (this.videoElement && this.videoElement.readyState >= 1 && this.videoElement.videoWidth > 0) {
+        ctx.save();
+        ctx.globalAlpha = this.cameraOpacity;
 
-      // Mirror video horizontally so player sees self naturally (selfie mirror mode)
-      ctx.translate(w, 0);
-      ctx.scale(-1, 1);
+        // Mirror video horizontally so player sees self naturally (selfie mirror mode)
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
 
-      // Aspect-fill video into canvas
-      const vw = this.videoElement.videoWidth || 640;
-      const vh = this.videoElement.videoHeight || 480;
-      const vAspect = vw / vh;
-      const cAspect = w / h;
+        // Aspect-fill video into canvas
+        const vw = this.videoElement.videoWidth || 640;
+        const vh = this.videoElement.videoHeight || 480;
+        const vAspect = vw / vh;
+        const cAspect = w / h;
 
-      let drawW = w;
-      let drawH = h;
-      let offX = 0;
-      let offY = 0;
+        let drawW = w;
+        let drawH = h;
+        let offX = 0;
+        let offY = 0;
 
-      if (vAspect > cAspect) {
-        drawH = h;
-        drawW = h * vAspect;
-        offX = (drawW - w) / 2;
-      } else {
-        drawW = w;
-        drawH = w / vAspect;
-        offY = (drawH - h) / 2;
+        if (vAspect > cAspect) {
+          drawH = h;
+          drawW = h * vAspect;
+          offX = (drawW - w) / 2;
+        } else {
+          drawW = w;
+          drawH = w / vAspect;
+          offY = (drawH - h) / 2;
+        }
+
+        ctx.drawImage(this.videoElement, -offX, -offY, drawW, drawH);
+        ctx.restore();
       }
-
-      ctx.drawImage(this.videoElement, -offX, -offY, drawW, drawH);
-      ctx.restore();
 
       // Subtle dark vignette to increase pipe & bird visual contrast
       const grad = ctx.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.85);
-      grad.addColorStop(0, 'rgba(10, 10, 14, 0.2)');
-      grad.addColorStop(1, 'rgba(10, 10, 14, 0.65)');
+      grad.addColorStop(0, 'rgba(10, 10, 14, 0.15)');
+      grad.addColorStop(1, 'rgba(10, 10, 14, 0.60)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
       // Real-time Nose Tracking Reticle HUD
-      if (this.controlMode === 'CAMERA' && this.detectedLandmark && performance.now() - this.detectedLandmark.timestamp < 500) {
+      if (this.detectedLandmark && performance.now() - this.detectedLandmark.timestamp < 500) {
         const noseX = (1 - this.detectedLandmark.rawX) * w;
         const noseY = this.detectedLandmark.rawY * h;
 
@@ -540,7 +546,7 @@ export class GameEngine {
         ctx.restore();
       }
     } else {
-      // Fallback stylized gym arcade background
+      // Fallback stylized gym arcade background for Mouse and Bot mode
       const grad = ctx.createLinearGradient(0, 0, 0, h);
       grad.addColorStop(0, '#1c1917');
       grad.addColorStop(0.5, '#292524');

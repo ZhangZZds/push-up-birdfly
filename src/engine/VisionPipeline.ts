@@ -30,12 +30,23 @@ export class VisionPipeline {
     return this.status;
   }
 
+  public setVideo(video: HTMLVideoElement): void {
+    this.video = video;
+    if (this.stream && this.video.srcObject !== this.stream) {
+      this.video.srcObject = this.stream;
+      this.video.play().catch(() => {});
+    }
+  }
+
   public getVideo(): HTMLVideoElement | null {
     return this.video;
   }
 
-  public async start(): Promise<void> {
+  public async start(customVideo?: HTMLVideoElement | null): Promise<void> {
     if (this.isRunning) return;
+    if (customVideo) {
+      this.video = customVideo;
+    }
     this.updateStatus('INITIALIZING', '正在启动摄像头与极速面部检测模型...');
 
     try {
@@ -51,15 +62,15 @@ export class VisionPipeline {
         this.video.setAttribute('webkit-playsinline', 'true');
         this.video.muted = true;
         this.video.autoplay = true;
-        // Non-zero dimensions and positive opacity prevent Android Chromium / MagicOS power-saving from suspending video decoding
+        // In-viewport positioning prevents Android Chromium / MagicOS power-saving from suspending video decoding
         this.video.style.position = 'fixed';
-        this.video.style.top = '-9999px';
-        this.video.style.left = '-9999px';
+        this.video.style.top = '0';
+        this.video.style.left = '0';
         this.video.style.width = '320px';
         this.video.style.height = '240px';
-        this.video.style.opacity = '0.01';
+        this.video.style.opacity = '0.001';
         this.video.style.pointerEvents = 'none';
-        this.video.style.zIndex = '-9999';
+        this.video.style.zIndex = '-1';
         if (!document.body.contains(this.video)) {
           document.body.appendChild(this.video);
         }
@@ -91,7 +102,7 @@ export class VisionPipeline {
           },
           audio: false,
         },
-        // 4. Absolute minimal constraint
+        // 4. Absolute minimal constraint (guaranteed universal fallback)
         {
           video: true,
           audio: false,
@@ -107,10 +118,6 @@ export class VisionPipeline {
           if (stream) break;
         } catch (err) {
           lastError = err;
-          // If permission is denied by user, stop trying lower constraints
-          if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
-            throw err;
-          }
           console.warn('getUserMedia constraint failed, trying next fallback:', constraints, err);
         }
       }
@@ -122,31 +129,19 @@ export class VisionPipeline {
       this.stream = stream;
       this.video.srcObject = this.stream;
 
-      await new Promise<void>((resolve) => {
-        if (!this.video) return resolve();
-
-        let resolved = false;
-        const complete = () => {
-          if (!resolved) {
-            resolved = true;
-            this.video?.play().catch((playErr) => {
-              console.warn('Initial video.play() deferred until user interaction:', playErr);
-              const unlock = () => {
-                this.video?.play().catch(() => {});
-                window.removeEventListener('touchstart', unlock);
-                window.removeEventListener('click', unlock);
-              };
-              window.addEventListener('touchstart', unlock, { once: true });
-              window.addEventListener('click', unlock, { once: true });
-            });
-            resolve();
-          }
+      // Ensure playback starts (with user gesture fallback unlock)
+      try {
+        await this.video.play();
+      } catch (playErr) {
+        console.warn('Initial video.play() deferred until user interaction:', playErr);
+        const unlock = () => {
+          this.video?.play().catch(() => {});
+          window.removeEventListener('touchstart', unlock);
+          window.removeEventListener('click', unlock);
         };
-
-        this.video.onloadedmetadata = complete;
-        // Safety timeout in case onloadedmetadata is delayed
-        setTimeout(complete, 1000);
-      });
+        window.addEventListener('touchstart', unlock, { once: true });
+        window.addEventListener('click', unlock, { once: true });
+      }
 
       this.isRunning = true;
 
@@ -223,7 +218,7 @@ export class VisionPipeline {
     const loop = (nowMs: number) => {
       if (!this.isRunning || !this.video) return;
 
-      if (this.video.readyState >= 2) {
+      if (this.video.readyState >= 1 && this.video.videoWidth > 0) {
         ctx.drawImage(this.video, 0, 0, w, h);
         const imgData = ctx.getImageData(0, 0, w, h);
         const data = imgData.data;

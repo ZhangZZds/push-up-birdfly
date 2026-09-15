@@ -4,21 +4,24 @@ import { ControlMode } from '../types/game';
 
 interface GameCanvasProps {
   controlMode: ControlMode;
-  onCanvasReady: (canvas: HTMLCanvasElement) => void;
+  onCanvasReady: (canvas: HTMLCanvasElement, video: HTMLVideoElement | null) => void;
   onSimulatedInputY: (normalizedY: number) => void;
+  cameraOpacity?: number;
 }
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
   controlMode,
   onCanvasReady,
   onSimulatedInputY,
+  cameraOpacity = 0.85,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (canvasRef.current) {
-      onCanvasReady(canvasRef.current);
+      onCanvasReady(canvasRef.current, videoRef.current);
     }
   }, [onCanvasReady]);
 
@@ -60,11 +63,23 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       }}
       className="relative w-full h-full max-w-[500px] max-h-[890px] aspect-[9/16] mx-auto overflow-hidden flex items-center justify-center bg-black select-none shadow-2xl rounded-none sm:rounded-3xl border-0 sm:border border-zinc-800"
     >
+      {/* Live Foreground-level Camera Video Element */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        webkit-playsinline="true"
+        muted
+        className={`absolute inset-0 w-full h-full object-cover -scale-x-100 pointer-events-none transition-opacity duration-300 ${
+          controlMode === 'CAMERA' ? 'block' : 'hidden'
+        }`}
+        style={{ opacity: cameraOpacity }}
+      />
       <canvas
         ref={canvasRef}
         width={REF_WIDTH}
         height={REF_HEIGHT}
-        className="w-full h-full object-contain touch-none"
+        className="w-full h-full object-contain touch-none relative z-10"
       />
     </div>
   );

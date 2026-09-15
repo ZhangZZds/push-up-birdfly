@@ -168,7 +168,8 @@ export const App: React.FC = () => {
     visionRef.current = vision;
 
     if (controlMode === 'CAMERA') {
-      vision.start().then(() => {
+      const activeVideo = engineRef.current?.getVideoElement() || vision.getVideo();
+      vision.start(activeVideo).then(() => {
         if (engineRef.current && vision.getVideo()) {
           engineRef.current.setVideoElement(vision.getVideo());
         }
@@ -188,7 +189,8 @@ export const App: React.FC = () => {
     }
 
     if (newMode === 'CAMERA') {
-      visionRef.current?.start().then(() => {
+      const activeVideo = engineRef.current?.getVideoElement() || visionRef.current?.getVideo();
+      visionRef.current?.start(activeVideo).then(() => {
         if (engineRef.current && visionRef.current?.getVideo()) {
           engineRef.current.setVideoElement(visionRef.current.getVideo());
         }
@@ -203,13 +205,31 @@ export const App: React.FC = () => {
   const handleRetryCamera = useCallback(() => {
     if (visionRef.current) {
       visionRef.current.stop();
-      visionRef.current.start().then(() => {
+      const activeVideo = engineRef.current?.getVideoElement() || visionRef.current?.getVideo();
+      visionRef.current.start(activeVideo).then(() => {
         if (engineRef.current && visionRef.current?.getVideo()) {
           engineRef.current.setVideoElement(visionRef.current.getVideo());
         }
       });
     }
   }, []);
+
+  // Unlock camera on user tap/touch gesture if autoplay was deferred
+  useEffect(() => {
+    const unlockCameraOnGesture = () => {
+      if (controlMode === 'CAMERA' && visionStatus !== 'READY') {
+        console.log('User gesture detected, unlocking camera...');
+        handleRetryCamera();
+      }
+    };
+
+    window.addEventListener('click', unlockCameraOnGesture, { once: true });
+    window.addEventListener('touchstart', unlockCameraOnGesture, { once: true });
+    return () => {
+      window.removeEventListener('click', unlockCameraOnGesture);
+      window.removeEventListener('touchstart', unlockCameraOnGesture);
+    };
+  }, [controlMode, visionStatus, handleRetryCamera]);
 
   // Listen for native Android permission grant event from MainActivity
   useEffect(() => {
@@ -275,8 +295,12 @@ export const App: React.FC = () => {
   }, [controlMode, processInputY]);
 
   // Initialize Game Canvas
-  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement) => {
+  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement, video: HTMLVideoElement | null) => {
     if (!audioRef.current || !trackerRef.current) return;
+
+    if (video && visionRef.current) {
+      visionRef.current.setVideo(video);
+    }
 
     const engine = new GameEngine({
       canvas,
@@ -291,7 +315,9 @@ export const App: React.FC = () => {
     engine.setDifficulty(difficulty);
     engine.setCameraOpacity(cameraOpacity);
     engine.setVerticalOffset(verticalOffset);
-    if (visionRef.current?.getVideo()) {
+    if (video) {
+      engine.setVideoElement(video);
+    } else if (visionRef.current?.getVideo()) {
       engine.setVideoElement(visionRef.current.getVideo());
     }
 
@@ -377,6 +403,7 @@ export const App: React.FC = () => {
           controlMode={controlMode}
           onCanvasReady={handleCanvasReady}
           onSimulatedInputY={handleSimulatedInputY}
+          cameraOpacity={cameraOpacity}
         />
 
         {/* Vertical Real-Time Depth Gauge */}

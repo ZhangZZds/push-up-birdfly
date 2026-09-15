@@ -19,16 +19,12 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 1. Explicitly request native Android camera & audio runtime permissions on startup
+        // 1. Explicitly request native Android camera runtime permission on startup
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
                 this,
-                new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.MODIFY_AUDIO_SETTINGS
-                },
+                new String[]{ Manifest.permission.CAMERA },
                 CAMERA_PERMISSION_REQUEST_CODE
             );
         }
@@ -42,8 +38,7 @@ public class MainActivity extends BridgeActivity {
             settings.setJavaScriptEnabled(true);
             settings.setAllowFileAccess(true);
 
-            // Subclass BridgeWebChromeClient so Capacitor's core features (console, file picker, alerts)
-            // remain intact while smoothly granting WebRTC camera stream.
+            // Subclass BridgeWebChromeClient to directly grant WebRTC camera streams synchronously
             this.bridge.getWebView().setWebChromeClient(new CustomWebChromeClient(this.bridge, this));
         }
     }
@@ -89,20 +84,10 @@ public class MainActivity extends BridgeActivity {
 
         @Override
         public void onPermissionRequest(final PermissionRequest request) {
-            boolean hasCamera = ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED;
-
-            if (hasCamera) {
-                // If camera permission is already granted by Android OS, grant WebRTC directly on UI thread
-                activity.runOnUiThread(() -> {
-                    try {
-                        request.grant(request.getResources());
-                    } catch (Exception e) {
-                        super.onPermissionRequest(request);
-                    }
-                });
-            } else {
-                // If not yet granted, invoke Capacitor's built-in permission launcher to trigger system prompt
+            try {
+                // Synchronously grant WebRTC permission request so Chromium does not timeout
+                request.grant(request.getResources());
+            } catch (Exception e) {
                 super.onPermissionRequest(request);
             }
         }

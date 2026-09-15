@@ -1,0 +1,68 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-apk:
+    name: Build Android APK (API 34 / Android 14+)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📱 Setup Android SDK & Build Tools
+        uses: android-actions/setup-android@v3
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install Node Dependencies
+        run: npm ci
+
+      - name: 🔨 Build Web Production Bundle
+        run: npm run build
+
+      - name: 🔄 Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: 🤖 Build Android APK (assembleDebug)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: 🏷️ Rename APK for Distribution
+        run: |
+          mkdir -p release-output
+          cp android/app/build/outputs/apk/debug/app-debug.apk release-output/push-up-bird-v1.0.0.apk
+          echo "APK generated successfully:"
+          ls -lh release-output/push-up-bird-v1.0.0.apk
+
+      - name: 📤 Upload APK Artifact to GitHub Actions Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: push-up-bird-v1.0.0-apk
+          path: release-output/push-up-bird-v1.0.0.apk
+
+      - name: 🚀 Attach APK to GitHub Release (v1.0.0)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.0.0 release-output/push-up-bird-v1.0.0.apk#push-up-bird-v1.0.0.apk --clobber
